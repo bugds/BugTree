@@ -1,0 +1,41 @@
+(((
+'NP_036060.1 Mus musculus'
+:0.0032,
+'NP_001278.1 Homo sapiens'
+:0.0067):0.0103,
+'XP_007499393.1 Monodelphis domestica'
+:0.0096):0.0256,(((
+'NP_001025815.1 Gallus gallus'
+:0.0156,
+'XP_007066590.1 Chelonia mydas'
+:0.0269):0.0048,
+'XP_025048878.1 Alligator sinensis'
+:0.0174):0.0104,
+'XP_025030556.1 Python bivittatus'
+:0.0640):0.0051,(
+'XP_012825963.1 Xenopus tropicalis'
+:0.0876,((
+'XP_014347191.1 Latimeria chalumnae'
+:0.0832,(
+'XP_007891947.1 Callorhinchus milii'
+:0.0975,(
+'XP_002595670.1 Branchiostoma floridae'
+:0.2008,(((
+'XP_013381142.1 Lingula anatina'
+:0.2249,(((
+'XP_011678532.1 Strongylocentrotus purpuratus'
+:0.2040,
+'XP_002109718.1 Trichoplax adhaerens'
+:0.3945):0.0200,
+'XP_001627108.1 Nematostella vectensis'
+:0.2315):0.0135,
+'XP_009031994.1 Helobdella robusta'
+:0.2829):0.0055):0.0025,
+'XP_011426744.1 Crassostrea gigas'
+:0.2578):0.0051,(
+'XP_006818446.1 Saccoglossus kowalevskii'
+:0.2100,
+'XP_018668924.2 Ciona intestinalis'
+:0.2990):0.0015):0.0061):0.1196):0.0169):0.0019,
+'NP_001071005.1 Danio rerio'
+:0.0991):0.0091):0.0355);

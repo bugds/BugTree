@@ -1,0 +1,19 @@
+((((
+'NP_001278.1 H/Cl-exchange transporter 7$'
+:0.3503,
+'NP_001277.1 chloride transport protein 6'
+:0.3270):0.4021,((
+'NP_000074.2 chloride channel protein 1'
+:0.1949,
+'NP_001164559.1 chloride channel protein 2'
+:0.1410):0.1071,(
+'NP_000076.2 chloride channel protein ClC-Kb'
+:0.0362,
+'NP_004061.3 chloride channel protein ClC-Ka'
+:0.0403):0.4553):0.5233):0.4672,
+'NP_000075.1 H/Cl-exchange transporter 5'
+:0.0765):0.0226,
+'NP_001821.2 H/Cl-exchange transporter 4'
+:0.0719,
+'NP_001820.2 H/Cl-exchange transporter 3'
+:0.0944);
