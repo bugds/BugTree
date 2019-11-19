@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
 from Bio import Phylo
+import numpy as np
 import matplotlib as plt
 import pylab
 
 def drawMark(tree, label_func=str, do_show=True, show_confidence=True, 
              axes=None, branch_labels=None, label_colors=None, mark=[],
-             markColor='r', markWeight='bold', *args, **kwargs):
+             markColor='r', markWeight='bold', lineColor='black',
+             *args, **kwargs):
     try: 
         import matplotlib.pyplot as plt 
     except ImportError: 
@@ -65,27 +67,40 @@ def drawMark(tree, label_func=str, do_show=True, show_confidence=True,
  
     # Layout 
  
-    def get_x_positions(tree): 
+    def get_x_positions(tree, cladogram=True): 
         """Create a mapping of each clade to its horizontal position. 
  
         Dict of {clade: x-coord} 
         """ 
-        depths = tree.depths() 
-        # If there are no branch lengths, assume unit branch lengths 
-        if not max(depths.values()): 
-            depths = tree.depths(unit_branch_lengths=True) 
+        global treeDepth
+        if cladogram:
+            treeDepth = 0
+            for terminal in tree.get_terminals():
+                candidate = len(tree.get_path(terminal))
+                if candidate > treeDepth:
+                    treeDepth = candidate
+            depths = tree.depths(unit_branch_lengths=True)
+            for clade in depths.keys():
+                if clade.is_terminal():
+                    depths[clade] = treeDepth
+        else:
+            depths = tree.depths() 
+            # If there are no branch lengths, assume unit branch lengths 
+            if not max(depths.values()): 
+                depths = tree.depths(unit_branch_lengths=True) 
         return depths 
  
     def get_y_positions(tree): 
+        global heights
         """Create a mapping of each clade to its vertical position. 
  
         Dict of {clade: y-coord}. 
         Coordinates are negative, and integers for tips. 
         """ 
-        maxheight = tree.count_terminals() 
+        maxheight = 2*np.pi
         # Rows are defined by the tips 
-        heights = {tip: maxheight - i 
-                   for i, tip in enumerate(reversed(tree.get_terminals()))} 
+        heights = {tip: maxheight*(1 - (i/tree.count_terminals())) 
+                   for i, tip in enumerate(reversed(tree.get_terminals()))}
  
         # Internal nodes: place at midpoint of children 
         def calc_row(clade): 
@@ -105,28 +120,29 @@ def drawMark(tree, label_func=str, do_show=True, show_confidence=True,
     # The function draw_clade closes over the axes object 
     if axes is None: 
         fig = plt.figure() 
-        axes = fig.add_subplot(1, 1, 1) 
+        axes = fig.add_subplot(111, projection='polar')
     elif not isinstance(axes, plt.matplotlib.axes.Axes): 
         raise ValueError("Invalid argument for axes: %s" % axes) 
  
     def draw_clade_lines(use_linecollection=False, orientation='horizontal', 
                          y_here=0, x_start=0, x_here=0, y_bot=0, y_top=0, 
-                         color='black', lw='.1'): 
+                         color=lineColor, lw='.1', resolution=100): 
         """Create a line with or without a line collection object. 
  
         Graphical formatting of the lines representing clades in the plot can be 
         customized by altering this function. 
         """ 
-        if not use_linecollection and orientation == 'horizontal': 
-            axes.hlines(y_here, x_start, x_here, color=color, lw=lw) 
-        elif use_linecollection and orientation == 'horizontal': 
-            horizontal_linecollections.append(mpcollections.LineCollection( 
-                [[(x_start, y_here), (x_here, y_here)]], color=color, lw=lw),) 
-        elif not use_linecollection and orientation == 'vertical': 
-            axes.vlines(x_here, y_bot, y_top, color=color) 
-        elif use_linecollection and orientation == 'vertical': 
-            vertical_linecollections.append(mpcollections.LineCollection( 
-                [[(x_here, y_bot), (x_here, y_top)]], color=color, lw=lw),) 
+        if orientation == 'horizontal': 
+            if y_here == np.pi/2:
+                axes.plot([y_here+0.00018, y_here+0.00018], 
+                          [x_start+0.012, x_here+0.012], 
+                          color=color, lw=lw)
+            else:
+                axes.plot([y_here, y_here], 
+                          [x_start, x_here], 
+                          color=color, lw=lw)
+        elif orientation == 'vertical': 
+            axes.plot(np.linspace(y_bot, y_top, resolution), [x_here]*resolution, color=color, lw=lw)
  
     def draw_clade(clade, x_start, color, lw): 
         """Recursively draw a tree, down from the given clade.""" 
@@ -138,19 +154,23 @@ def drawMark(tree, label_func=str, do_show=True, show_confidence=True,
         if hasattr(clade, 'width') and clade.width is not None: 
             lw = clade.width * plt.rcParams['lines.linewidth'] 
         # Draw a horizontal line from start to here 
-        draw_clade_lines(use_linecollection=True, orientation='horizontal', 
+        draw_clade_lines(use_linecollection=False, orientation='horizontal', 
                          y_here=y_here, x_start=x_start, x_here=x_here, color=color, lw=lw) 
         # Add node/taxon labels 
+        '''
         label = label_func(clade) 
         if label not in (None, clade.__class__.__name__): 
             if label in mark:
-                axes.text(x_here, y_here, ' %s' % 
+                axes.text(y_here, x_here, ' %s' % 
                           label, verticalalignment='center', 
-                          color=markColor, fontweight=markWeight) 
+                          color=markColor, fontweight=markWeight,
+                          rotation=y_here + np.pi/2) 
             else:
-                axes.text(x_here, y_here, ' %s' % 
+                axes.text(y_here, x_here, ' %s' % 
                           label, verticalalignment='center', 
-                          color=get_label_color(label)) 
+                          color=get_label_color(label),
+                          rotation=y_here + np.pi/2) 
+        '''
         # Add label above the branch (optional) 
         conf_label = format_branch_label(clade) 
         if conf_label:
@@ -161,8 +181,9 @@ def drawMark(tree, label_func=str, do_show=True, show_confidence=True,
             y_top = y_posns[clade.clades[0]] 
             y_bot = y_posns[clade.clades[-1]] 
             # Only apply widths to horizontal lines, like Archaeopteryx 
-            draw_clade_lines(use_linecollection=True, orientation='vertical', 
-                             x_here=x_here, y_bot=y_bot, y_top=y_top, color=color, lw=lw) 
+            draw_clade_lines(use_linecollection=False, orientation='vertical', 
+                             x_here=x_here, y_bot=y_bot, y_top=y_top, 
+                             color=color, lw=lw) 
             # Draw descendents 
             for child in clade: 
                 draw_clade(child, x_here, color, lw) 
@@ -177,18 +198,31 @@ def drawMark(tree, label_func=str, do_show=True, show_confidence=True,
         axes.add_collection(i) 
  
     # Aesthetics 
- 
-    if hasattr(tree, 'name') and tree.name: 
-        axes.set_title(tree.name) 
-    axes.set_xlabel('branch length') 
-    axes.set_ylabel('taxa') 
-    # Add margins around the tree to prevent overlapping the axes 
-    xmax = max(x_posns.values()) 
-    axes.set_xlim(-0.05 * xmax, 1.25 * xmax) 
-    # Also invert the y-axis (origin at the top) 
-    # Add a small vertical margin, but avoid including 0 and N+1 on the y axis 
-    axes.set_ylim(max(y_posns.values()) + 0.8, 0.2) 
- 
+    
+    #xmax = max(x_posns.values()) 
+    #axes.set_xlim(-0.05 * xmax, 1.25 * xmax) 
+    axes.set_rmax(treeDepth + 1)
+    '''
+    ticks = np.linspace(0, 2*np.pi, 1 + len(tree.get_terminals()))
+    axes.set_xticks(ticks)
+    axes.set_xticklabels(leaf.name for leaf in tree.get_terminals())
+
+    angles = np.linspace(0,2*np.pi,len(axes.get_xticklabels())+1)
+    #angles[np.cos(angles) < 0] = angles[np.cos(angles) < 0] + np.pi
+    angles = np.rad2deg(angles)
+    
+    fig.canvas.draw()
+    labels = []
+    for label, theta in zip(axes.get_xticklabels(), angles):
+        lab = axes.text(treeDepth, theta, label.get_text(), 
+                      transform=label.get_transform(),
+                      ha=label.get_ha(), va=label.get_va())
+        if np.cos(theta) < 0:
+            lab.set_rotation(theta + np.pi)
+        else: lab.set_rotation(theta)
+        labels.append(lab)
+    axes.set_xticklabels([])
+    '''
     # Parse and process key word arguments as pyplot options 
     for key, value in kwargs.items(): 
         try: 
@@ -213,13 +247,11 @@ def drawTree(treeName,
              outX,
              outY=10,
              outFormat='png', 
-             outDPI=100,
-             ladderize=True, 
-             fontSize=12,
-             lineWidth=0.75,
+             outDPI=300,
+             ladderize=False, 
+             fontSize=5,
+             lineWidth=0.25,
              mark=[]):
-
-    # ax = plt.pyplot.subplot(111, projection='polar')
 
     plt.rc('font', size=fontSize)
     plt.rc('lines', lw=lineWidth, color='k')
@@ -227,24 +259,22 @@ def drawTree(treeName,
 
     tree = Phylo.read(treeName + '.nwk', "newick")
     if ladderize: tree.ladderize()
+    protein7 = tree.common_ancestor(toMark[0], toMark[1])
+    protein7.color = 'r'
 
     # for m in toMark:
         # if tree.find_any(m):
             # print('qwe')
             # tree.find_any(m).color = 'r'
 
-    drawMark(tree, lambda n: n.name, do_show=False, mark=mark)
+    drawMark(tree, lambda n: n.name, do_show=False, mark=[])
     pylab.axis("off")
     pylab.savefig("{0}.{1}".format(treeName, outFormat),
                   format=outFormat,
-                  bbox_inches='tight',
-                  pad_inches=0,
+                  #bbox_inches='tight',
+                  #pad_inches=0,
                   dpi=outDPI)
 
-toMark = ['NP_001278.1 Homo sapiens',
-          'NP_001278.1 H/Cl-exchange transporter 7']
-drawTree('orthologs', outX=12, mark=toMark)
-drawTree('paralogs', outX=10, mark=toMark)
-
-# TODO:
-# 1) Circular plot
+toMark = ['XP_021076601.1_H(+)/Cl(-)_exchange_transporter_7_isoform_X3_Mus_pahari',
+          'XP_012063553.1_PREDICTED:_H(+)/Cl(-)_exchange_transporter_7_Atta_cephalotes']
+drawTree('1000', outX=10, mark=toMark)
